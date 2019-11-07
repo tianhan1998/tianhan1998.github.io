@@ -1,6 +1,6 @@
 # Site settings
 title: 我太难了
-SEOTitle: 你的博客 | Your Blog
+SEOTitle: TH的博客 | TH Blog
 header-img: img/home-bg.jpg
 email: 892265525@qq.com
 description: "一只乐观的程序员"
@@ -24,15 +24,16 @@ github_username: tianhan1998
 # from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
 highlighter: rouge
 permalink: pretty
-paginate: 10
+paginate: 5
 exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
+paginate_path: "page:num"
 
 
 
 # Gems
 # from PR#40, to support local preview for Jekyll 3.0
-gems: [jekyll-paginate]
+plugins: [jekyll-paginate]
 
 
 
@@ -50,51 +51,45 @@ kramdown:
 #disqus_username: _your_disqus_short_name_
 
 # Duoshuo settings
-duoshuo_username: huxblog
+#duoshuo_username: huxblog
 # Share component is depend on Comment so we can NOT use share only.
-duoshuo_share: true                     # set to false if you want to use Comment without Sharing
+#duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
 
 
 
 # Analytics settings
 # Baidu Analytic
-ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
+ba_track_id: ccb244a054cdd3dd1532dc820c796a76
 # Google Analytics
-ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-ga_domain: huangxuan.me
+#ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+#ga_domain: huangxuan.me
 
 
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
-sidebar-about-description: "写写代码，做做设计，看看产品。世界那么大，多玩玩看看。"
+sidebar-about-description: "一只乐观的程序员"
 sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
 # Featured Tags
 featured-tags: true                     # whether or not using Feature-Tags
-featured-condition-size: 1              # A tag will be featured if the size of it is more than this condition value
+featured-condition-size: 0              # A tag will be featured if the size of it is more than this condition value
 
 
 
 # Friends
 friends: [
     {
-        title: "Hux Blog",
-        href: "http://huangxuan.me"
+        title: "xwmm Blog",
+        href: "https://xwmm.github.io"
     },{
-        title: "Foo",
-        href: "#"
+        title: "Yang Blog",
+        href: "https://yang295513.github.io"
     },{
-        title: "Bar",
-        href: "#"
-    },{
-        title: "Example Friends",
-        href: "#"
-    },{
-        title: "It helps SEO",
-        href: "#"
+        title: "WYS Blog",
+        href: "https://wyscoder.github.io"
     }
 ]
