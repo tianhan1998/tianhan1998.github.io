@@ -1,0 +1,165 @@
+---
+layout:     post
+title:      "SpringBoot的定时器实现"
+subtitle:   "新版本的快乐"
+date:       2019-11-27
+author:     "TH"
+header-img: ""
+tags:
+    - 项目
+    - SpringBoot
+    - 代码
+    - 心得
+---
+## SpringBoot定时器
+
+写学校项目的时候碰到了定时器需求，每分钟都要检查所有的比赛是否开始和是否结束。幸运的是SpringBoot内部封装了定时器，很容易就能实现
+
+### 单线程任务
+
+要实现单线程定时器十分的简单，**首先要在启动类里添加@EnableScheduling注解**
+
+```Java
+@EnableScheduling
+@SpringBootApplication//此处必须添加注解定时任务才会生效
+public class OnlineRegistrationSystemApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OnlineRegistrationSystemApplication.class, args);
+    }
+}
+```
+
+之后实现你的任务类，记得要加@Component注解
+
+```java
+@Component
+public class SchedulingUtils {
+    @Scheduled(cron = "0 */1 * * * ?")//每一分钟查一次
+    public void checkStartMatchStatus(){     
+    }
+
+```
+
+在你要实现的方法上添加@Scheduled注解规定定时任务的执行规定
+
+内部有个cron表达式可以方便的规定好时间
+
+引用一下别人写的博客
+
+> **Cron表达式范例：**
+>
+> - `*/5 * * * * ?` ：每隔5秒执行一次
+> - `0 */1 * * * ?` ：每隔1分钟执行一次
+> - `0 0 23 * * ?` ：每天23点执行一次
+> - `0 0 1 * * ?` ：每天凌晨1点执行一次：
+> - `0 0 1 1 * ?` ：每月1号凌晨1点执行一次
+> - `0 0 23 L * ?` ： 每月最后一天23点执行一次
+> - `0 0 1 ? * L` ：每周星期天凌晨1点实行一次
+> - `0 26,29,33 * * * ?` ： 在26分、29分、33分执行一次
+> - `0 0 0,13,18,21 * * ?` ： 每天的0点、13点、18点、21点都执行一次
+
+引用博客地址:https://www.cnblogs.com/morethink/p/8908542.html
+
+这样一个定时任务就就配置好了，不过SpringBoot默认是单线程执行任务的，如果有多个定时任务，那么就会执行完第一个之后线程空闲了才会去执行第二个**（尽管不是第二个的触发时间）**但如果我们有需求需要同时执行多个定时任务怎么办。
+
+我的项目里不仅要检查比赛开始时间，同时还要检测比赛结束时间，我设置了两个定时任务，每一分钟都要同时执行这两个定时任务。这样单线程就不能满足同时执行这个需求了，那么多线程怎么实现呢？
+
+### 多线程任务
+
+多线程任务在SpringBoot 2.0及以前的版本是要实现配置类的，在2.1版本及以后就封装了自动配置类，可以直接从application.yml/properties文件中读取数据
+
+#### SpringBoot2.0版本及之前
+
+需要实现一个Spring封装好的线程池接口**SchedulingConfigurer** 
+
+```Java
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import java.util.concurrent.Executor;
+@Slf4j
+@Configuration
+public class ScheduleConfig implements SchedulingConfigurer {
+    /**
+     * 定时任务线程池
+     * @return
+     */
+    @Bean("scheduledThreadPoolExecutor")
+    public Executor scheduledThreadPoolExecutor() {
+        log.info("start scheduledThreadPoolExecutor");
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        // 配置核心线程数
+        scheduler.setPoolSize(10);
+        return scheduler;
+    }
+    
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar scheduledTaskRegistrar) {
+        // 参数传入一个线程池
+        scheduledTaskRegistrar.setScheduler(scheduledThreadPoolExecutor());
+    }
+
+}
+```
+
+> ThreadPoolTaskScheduler类的继承和实现关系如下：
+>
+> ThreadPoolTaskScheduler是Task Scheduler接口的实现类，它的父类ExecutorConfigurationSupport重写了销毁方法destroy( )和shutdown(  )，通过查看源码可以看到，如果不设置等待任务在关闭容器时完成（waitForTasksToCompleteOnShutdown =  true），那么就默认调用了ScheduledThreadPoolExecutor（后续解释为什么是这个类）类的shutdownNo方法
+>
+> ThreadPoolTaskScheduler类是spring对jdk中ScheduledThreadPoolExecutor类的包装，当创建一个ThreadPoolTaskScheduler对象的bean时，它的内部就已经自动创建了一个默认池大小为1的ScheduledThreadPoolExecutor线程池对象，要注意是在spring容器注册bean时才会去初始化内部的线程池
+
+ 这样就实现了多个任务多线程运行，但单个定时任务还是串行的，意思是如果一个任务未完成的情况下，又到了执行时间。是不会执行的，如果想要单个定时任务也并行。需要加上**@Async**注解
+
+```Java
+@Component
+@EnableScheduling
+public class ScheduledService {
+ 
+    private Logger logger = LoggerFactory.getLogger(ScheduledService.class);
+ 
+    @Scheduled(cron = "0/5 * * * * *")
+    @Async
+    public void scheduled() {
+        logger.info("=====>>>>>使用cron  {}", System.currentTimeMillis());
+    }
+ 
+    @Scheduled(fixedRate = 5000)
+    @Async
+    public void scheduled1() {
+        logger.info("=====>>>>>使用fixedRate{}", System.currentTimeMillis());
+    }
+ 
+    @Scheduled(fixedDelay = 5000)
+    @Async
+    public void scheduled2() {
+        logger.info("=====>>>>>fixedDelay{}", System.currentTimeMillis());
+    }
+}
+```
+
+#### SpringBoot2.1版本及以后
+
+由于SpringBoot已经给我们封装好了自动配置类，我们只需要在配置文件中加上这两个属性
+
+```yaml
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 10
+      thread-name-prefix: myScheduling-
+```
+
+size指定线程池大小
+
+thread-name-prefix:线程名称前缀
+
+![1574824653715](F:\blog\img\schedule1.png)
+
+可以看到两个任务每次同时进行，不是同一个线程。名称就是自己设置的。
+
+如果想要单个并行，加上**@Async**即可
+
