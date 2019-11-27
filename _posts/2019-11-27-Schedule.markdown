@@ -37,6 +37,7 @@ public class SchedulingUtils {
     @Scheduled(cron = "0 */1 * * * ?")//每一分钟查一次
     public void checkStartMatchStatus(){     
     }
+}
 
 ```
 
@@ -157,7 +158,7 @@ size指定线程池大小
 
 thread-name-prefix:线程名称前缀
 
-![1574824653715](F:\blog\img\schedule1.png)
+![1574824653715](../img/schedule1.png)
 
 可以看到两个任务每次同时进行，不是同一个线程。名称就是自己设置的。
 
