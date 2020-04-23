@@ -26,11 +26,11 @@ tags:
 
 ## 应用场景
 
-![image-20200317131200620](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317131200620.png)
+![image-20200317131200620](/img/zookeeper/image-20200317131200620.png)
 
 ### 统一命名服务：
 
-![image-20200317131343327](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317131343327.png)
+![image-20200317131343327](/img/zookeeper/image-20200317131343327.png)
 
 访问域名而不是服务器
 
@@ -67,7 +67,7 @@ ZooKeeper实现：
 
 让访问数最少的服务器处理最新客户端请求
 
-![image-20200317132049886](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317132049886.png)
+![image-20200317132049886](/img/zookeeper/image-20200317132049886.png)
 
 ## 配置参数
 
@@ -119,7 +119,7 @@ ZooKeeper实现：
 
 ## Stat结构体
 
-![image-20200317162638793](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317162638793.png)
+![image-20200317162638793](/img/zookeeper/image-20200317162638793.png)
 
 ## 监听器原理（重点）！！
 
@@ -149,7 +149,7 @@ Leader广播写请求，所有Server写成功后通知Leader
 
 之后Server1就会通知客户端认为写成功了
 
-![image-20200317163403723](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317163403723.png)
+![image-20200317163403723](/img/zookeeper/image-20200317163403723.png)
 
 
 
@@ -161,7 +161,7 @@ Leader广播写请求，所有Server写成功后通知Leader
 
 ### 配置zoo.cfg
 
-![image-20200317160223023](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317160223023.png)
+![image-20200317160223023](/img/zookeeper/image-20200317160223023.png)
 
 server. A=B:C:D
 
@@ -183,43 +183,43 @@ bin/zkCli
 
 1. ls [path] 
 
-   ![image-20200317160954927](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317160954927.png)
+   ![image-20200317160954927](/img/zookeeper/image-20200317160954927.png)
 
 2. ls2 [path] 详细数据
 
-   ![image-20200317161011930](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161011930.png)
+   ![image-20200317161011930](/img/zookeeper/image-20200317161011930.png)
 
 3. 创建节点
 
    create [path] [data]
 
-   ![image-20200317161317946](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161317946.png)
+   ![image-20200317161317946](/img/zookeeper/image-20200317161317946.png)
 
-   ![image-20200317161350066](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161350066.png)
+   ![image-20200317161350066](/img/zookeeper/image-20200317161350066.png)
 
 4. 取数据
 
    get [path]
 
-   ![image-20200317161501640](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161501640.png)
+   ![image-20200317161501640](/img/zookeeper/image-20200317161501640.png)
 
 5. 创建短暂节点(断开客户端连接后删除)
 
    create **-e** [path] [data] 
 
-   ![image-20200317161626942](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161626942.png)
+   ![image-20200317161626942](/img/zookeeper/image-20200317161626942.png)
 
 6. 创建序号节点
 
    create **-s** [path] [data]
 
-   ![](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161812621.png)
+   ![](/img/zookeeper/image-20200317161812621.png)
 
 7. 修改节点值
 
    set [path] [data]
 
-   ![image-20200317161926151](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317161926151.png)
+   ![image-20200317161926151](/img/zookeeper/image-20200317161926151.png)
 
 8. 节点值变化监听
 
@@ -235,7 +235,7 @@ bin/zkCli
 
     delete [path]
 
-    ![image-20200317162442759](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317162442759.png)
+    ![image-20200317162442759](/img/zookeeper/image-20200317162442759.png)
 
 11. 递归删除节点
 
@@ -245,53 +245,53 @@ bin/zkCli
 
 ### 添加pom文件
 
-![image-20200317163500973](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317163500973.png)
+![image-20200317163500973](/img/zookeeper/image-20200317163500973.png)
 
 ### 拷贝log4j
 
-![image-20200317163614958](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317163614958.png)
+![image-20200317163614958](/img/zookeeper/image-20200317163614958.png)
 
 ### 连接ZooKeeper
 
-![image-20200317164135480](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317164135480.png)
+![image-20200317164135480](/img/zookeeper/image-20200317164135480.png)
 
 ### 创建子节点
 
-![image-20200317164614773](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317164614773.png)
+![image-20200317164614773](/img/zookeeper/image-20200317164614773.png)
 
 create(path,data,ACL权限,创建模式（短暂或序号）)
 
 ### 获取子节点并监控
 
-![image-20200317165253905](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317165253905.png)
+![image-20200317165253905](/img/zookeeper/image-20200317165253905.png)
 
-![image-20200317165130016](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317165130016.png)
+![image-20200317165130016](/img/zookeeper/image-20200317165130016.png)
 
 因为需要watch所以写到监听器内部类中
 
 ### 判断节点是否存在
 
-![image-20200317165530454](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317165530454.png)
+![image-20200317165530454](/img/zookeeper/image-20200317165530454.png)
 
 ### 监听服务器动态上下线
 
 #### 服务器向ZooKeeper写入自己信息
 
-![image-20200317170956459](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317170956459.png)
+![image-20200317170956459](/img/zookeeper/image-20200317170956459.png)
 
-![image-20200317171029003](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317171029003.png)
+![image-20200317171029003](/img/zookeeper/image-20200317171029003.png)
 
-![image-20200317171108607](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317171108607.png)
+![image-20200317171108607](/img/zookeeper/image-20200317171108607.png)
 
-![image-20200317171039075](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317171039075.png)
+![image-20200317171039075](/img/zookeeper/image-20200317171039075.png)
 
 #### 客户端读取服务器信息
 
-![image-20200317171918530](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317171918530.png)
+![image-20200317171918530](/img/zookeeper/image-20200317171918530.png)
 
-![image-20200317171928834](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317171928834.png)
+![image-20200317171928834](/img/zookeeper/image-20200317171928834.png)
 
-![image-20200317172002497](C:\Users\tianh\AppData\Roaming\Typora\typora-user-images\image-20200317172002497.png)
+![image-20200317172002497](/img/zookeeper/image-20200317172002497.png)
 
 # 企业面试真题
 

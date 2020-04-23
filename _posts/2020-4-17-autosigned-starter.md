@@ -21,7 +21,7 @@ tags:
 
 先来看一下项目的具体架构
 
-![项目架构](E:\IdeaProjects\tianhan1998.github.io\img\augosigned-starter-01.jpg)
+![项目架构](img\augosigned-starter-01.jpg)
 
 **可以看到starter只是一个依赖控制的作用，他自己是个空项目，通过pom文件来引入子自动配置类，当然我们后面也可以添加其他的组件，然后使用starter的pom连接起来。其他人在使用的时候不用管内部有什么组件，只需要引入starter就可以一次性把所有的组件都引入进来。**
 
@@ -105,7 +105,7 @@ public class BdAutoSignedAutoConfiguration {
 
 ### nexus的仓库类型
 
-![](E:\IdeaProjects\tianhan1998.github.io\img\autosigned-stater-02.jpg)
+![](\img\autosigned-stater-02.jpg)
 
 #### 1.proxy代理仓库
 
@@ -115,11 +115,11 @@ public class BdAutoSignedAutoConfiguration {
 
 就是宿主仓库的意思，在这个仓库中我们可以上传自己的jar包，正好对应我的需求。注意我们如果要上传jar包的话，它是分为两个版本的，一个是**SNAPSHOT测试版**，另一个是**RELEASE正式版**在我们创建maven工程时他都会提醒你设置版本号，以及版本信息（正式版还是测试版），区别就在这点，再上传jar包是他会判断我们的版本信息，RELEASE版本的jar包会到专门的releases仓库，SNAPSHOT版本就会传到snapshots仓库，如果是SNAPSHOT版本但不配置RELEASE仓库的话，Deploy时会出错哦~
 
-![](E:\IdeaProjects\tianhan1998.github.io\img\augosigned-starter-03.jpg)
+![](\img\augosigned-starter-03.jpg)
 
 #### 3.group组仓库
 
-![](E:\IdeaProjects\tianhan1998.github.io\img\augosigned-starter-04.jpg)
+![](\img\augosigned-starter-04.jpg)
 
 就是把多个仓库揉成一个仓库组，在配置下载仓库时比较方便，组仓库会有一个下载顺序，比如上图，他会先从releases库中寻找jar包，找不到再从snapshots库中找jar包，最后找不到通过代理仓库到第三方仓库继续找。
 
@@ -129,7 +129,7 @@ maven中配置文件经常遇到的有两个，一个是pom.xml，另一个是Se
 
 我们配置私服后，需要对应的账号密码才可以访问仓库，而这个数据配置在settings文件中，因为pom文件要上传上去，所以配置在settings里安全
 
-![](E:\IdeaProjects\tianhan1998.github.io\img\augosigned-starter-05.jpg)
+![](\img\augosigned-starter-05.jpg)
 
 id指定对应服务器的特别标示，在pom里要制定上传仓库的话，id要和settings中的一致，这样才知道对应的服务器账号密码是什么
 
@@ -137,7 +137,7 @@ id指定对应服务器的特别标示，在pom里要制定上传仓库的话，
 
 如果我们要从第三方的服务器下载，需要在settings文件中配置对应的mirror配置
 
-![](E:\IdeaProjects\tianhan1998.github.io\img\augosigned-starter-06.jpg)
+![](\img\augosigned-starter-06.jpg)
 
 mirrorOf属性制定的是我们访问哪个远程仓库的时候需要走这个代理，我设置*代表所有远程仓库都不走，都走这个代理服务器。**注意id要和server中的一致**
 
@@ -147,7 +147,7 @@ mirrorOf属性制定的是我们访问哪个远程仓库的时候需要走这个
 
 要上传jar包到服务器（deploy）的话，我们需要在pom中指定上传的仓库地址
 
-![](E:\IdeaProjects\tianhan1998.github.io\img\augosigned-starter-07.jpg)
+![](\img\augosigned-starter-07.jpg)
 
 **注意id也要和settings对应的id一致，这样才能拿到对应服务器的验证密码。**
 
