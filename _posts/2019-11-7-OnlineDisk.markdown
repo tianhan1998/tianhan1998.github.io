@@ -136,3 +136,54 @@ try(BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(res.get
         <property name="idleConnectionTestPeriod" value="4600"></property>
 ```
 前端是真的费事。。。ajax如果用restful风格传参好像传不到controller里，还不知道原因，换成post提交表单可以。生成html代码很费劲。。拼接字符串之后用jquery获得div然后用html()函数修改。字符串双引号太多idea都识别不出来谁才是开头和结尾的双引号了。
+### 第N天实现
+- 修复了点赞的bug
+- 为后端添加了数据验证（防止Postman直接提交表单绕过前端判断空）
+- 优化Dao层代码，添加Good实体类
+- 修改数据库设计，取消Common内部Good字段（实体类没变）
+***
+不知不觉过了一个学期了，后半个学期开发了好几个大项目。再看看半个学期前写的代码，不堪入目。首先JSON的返回格式没有规定好，有Success也有Error也有Message，以后我开发统一为三个字段，data，msg，code。Dao层写的也乱七八糟，返回值不该用boolean，应该用int判断。SSM还是有点麻烦，RestController返回的数据必须为Map类型，如果是fastjson还需要额外配置xml，除非导入jacksoncore包。
+
+验证方面，我光给前端js加了验证，评论的前端甚至写的有问题，如果有人使用postman类似软件直接通过api提交表单，那么就会出错（同学经常这样做）233，添加了后端验证后就不会那么多事了。js和jquery当时果然不太熟，js操纵dom写的乱死了，竟然搞了15个变量来存新增的html代码串。
+
+想想当初的zz操作，ajax不写error回调函数，还像个憨批一样到处说ajax难调试，控制台不输出，智障。
+
+登录态检测不用Filter，反而在每个controller开头取session用if判断，简直是疯了。特别是这种前后端不分离的，后端跳转来跳转去自己都蒙了
+
+Cookie保存登录状态不加密，这样别人直接修改用户名就自动登录别人的账号上了，安全性为零。
+
+寒假再往上加东西的话，就考虑增加一个路径功能吧，也就是文件夹。这个慢慢构思下吧，感觉东西挺多的
+
+更新记录应该写在一个文件里然后从后端读比较好，前端模板找个能支持md的就好了。
+
+### 第NN天实现
+由于腾讯云要到期了，不准备续费（因为薅了个免费阿里云的服务器）。所以准备搞个服务器迁移。由于老服务器是Windows server，而新服务器是Linux，所以改了下代码。
+
+#### 判断系统
+使用Java原生代码
+```java
+System.getProperty("os.name");//Linux返回Linux Windows10返回Windows 10
+```
+#### 数据库迁移
+打了个.sql文件直接转，由于数据库里存的有文件路径，而Linux文件系统和Windows不太一样，所以把路径统一换了。Linux以/为根目录
+
+#### 文件系统
+Linux以/为根目录，文件分隔符为/，Windows以\分隔，可以从java中直接获取分隔符
+```java
+File.separator//使用separator属性直接获取当前系统的分隔符
+```
+
+#### 中文乱码
+上传好的文件打了个压缩包，通过xshell传给了服务器，但是解压后发现中文文件名全部木大，都是乱码，百度了一下用convmv命令可以直接转。试了下centos7不带，所以还要先yum安装
+```
+yum install convmv  #使用yum安装convmv转码器
+
+convmv -f GBK -t UTF-8 --notest -r /home/test #使用convmv命令转换编码为UTF-8,如果是目录则会全部转换
+```
+
+#### docker容器
+在Linux我是用Docker来安装组件的，tomcat和mysql都是。使用容器数据卷连接一下tomcat的webapps目录，这样方便部署war包
+
+跑了一下，发现登录不了。报错连接不上服务器，看了下代码。localhost没问题啊，都是服务器本机。仔细想了下，Docker容器是沙箱隔离的，一个容器的mysql和另一个容器的tomcat是访问不到的，所以把连接换成了服务器ip，成功登陆
+
+上传，下载，都没问题，没想到这边改完一遍过了。但是下载之前的文件都不行，看数据库，路径没问题啊。想了想还是沙箱隔离的问题，就算运行的是tomcat，内部也有一个自己的centos，每次上传新文件都会到容器中的centos目录中，遂再搞一个容器数据卷，把本机的upload文件夹和tomcat的upload文件夹连接起来，再跑。没问题了。
