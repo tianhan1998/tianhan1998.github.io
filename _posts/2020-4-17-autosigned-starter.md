@@ -21,7 +21,7 @@ tags:
 
 先来看一下项目的具体架构
 
-![项目架构](img\augosigned-starter-01.jpg)
+![项目架构](\img\augosigned-starter-01.jpg)
 
 **可以看到starter只是一个依赖控制的作用，他自己是个空项目，通过pom文件来引入子自动配置类，当然我们后面也可以添加其他的组件，然后使用starter的pom连接起来。其他人在使用的时候不用管内部有什么组件，只需要引入starter就可以一次性把所有的组件都引入进来。**
 
