@@ -113,7 +113,7 @@ public class BdAutoSignedAutoConfiguration {
 
 #### 2.hosted仓库
 
-就是宿主仓库的意思，在这个仓库中我们可以上传自己的jar包，正好对应我的需求。注意我们如果要上传jar包的话，它是分为两个版本的，一个是**SNAPSHOT测试版**，另一个是**RELEASE正式版**在我们创建maven工程时他都会提醒你设置版本号，以及版本信息（正式版还是测试版），区别就在这点，再上传jar包是他会判断我们的版本信息，RELEASE版本的jar包会到专门的releases仓库，SNAPSHOT版本就会传到snapshots仓库，如果是SNAPSHOT版本但不配置RELEASE仓库的话，Deploy时会出错哦~
+就是宿主仓库的意思，在这个仓库中我们可以上传自己的jar包，正好对应我的需求。注意我们如果要上传jar包的话，它是分为两个版本的，一个是**SNAPSHOT测试版**，另一个是**RELEASE正式版**在我们创建maven工程时他都会提醒你设置版本号，以及版本信息（正式版还是测试版），区别就在这点，再上传jar包是他会判断我们的版本信息，RELEASE版本的jar包会到专门的releases仓库，SNAPSHOT版本就会传到snapshots仓库，如果是SNAPSHOT版本但不配置SNAPSHOT仓库的话，Deploy时会出错哦~
 
 ![](\img\augosigned-starter-03.jpg)
 
