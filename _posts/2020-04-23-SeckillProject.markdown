@@ -55,3 +55,93 @@ goods:{
 > value object值对象。通常用于业务层之间的数据传递，和PO一样也是仅仅包含数据而已。但应是抽象出的业务对象,可以和表对应,也可以不,这根据业务的需要.个人觉得同DTO(数据传输对象),在web上传递。
 
 简单来说PO对象要和数据库一一对应，而VO就不一定对应了，可以根据需求添加自己需要的属性。所以就完美解决了上面的需求，建立一个新的商品VO类，把秒杀实体信息和商品实体信息揉到一块成这个对象再发给前端。这样前端也好从中取值。
+
+---
+
+——2020/4/27   axios怎么说呢，emmm...
+
+---
+
+
+
+## AXIOS和$.ajax()
+
+Vue官方推荐axios来发送ajax信息，举出几个跟jquery的ajax不一样的地方吧。
+
+1. axios指定请求方式的参数为method,jquery为type
+
+   ```javascript
+   $.ajax({
+       type:'post'
+   })
+   ---
+   axios({
+       method:'get'
+   })
+   ```
+
+   
+
+2. axios传get请求参数为params，post请求为data，jquery统一为data(get发的是json字符串，post发序列化后结果)
+
+   ```javascript
+   axios({
+       url:'xxx',
+   	method:'post',
+   	data:{
+   		xxx:xxx,
+   	}
+   	method:'get',
+   	params:{
+   		xxx:xxx,
+   	}
+   })
+   ---
+   $.ajax({
+       url:'xxx',
+   	type:'get',
+   	data:{
+   		"xxx":"xxx",
+   	}
+   })
+   ```
+
+   
+
+3. **axios在发post请求时出现的问题**
+
+   axios在发送post时，是把data属性中的值转为json字符串在request的body体里发送，后端不加注解是无法直接封装的，所以需要加上@RequestBody注解，jquery的ajax默认传送json对象，后端不用加@RequestBody也可以封装，但如果想要使用@RequestBody注解，则需要指定contentType为application/json以及将json对象转换为字符串后即可。
+
+   ```javascript
+   $.ajax({
+   	url : "/api/updateFeedback",
+   	async : false,
+   	type : "POST",
+   	contentType : 'application/json',
+   	dataType : 'json',
+   	data :JSON.stringify(data),
+   	success : function(data) {
+   		lert("111");
+   	}
+   });
+   ```
+
+   
+
+4. 回调函数
+
+   axios在指定success回调函数时，可以直接使用then()方法，在指定error回调函数时，可以直接使用catch()方法，顺便说下，配合=>匿名函数更香哦。
+
+   ```javascript
+   axios({
+       
+   }).then(response=>{
+      if(response.data.xxx){ //后端返回的数据会自动封装在response.data中，response里还有status这种属性
+          xxx
+      }   
+   }).catch(response=>{
+       console.log(response);
+   });
+   ```
+
+   
