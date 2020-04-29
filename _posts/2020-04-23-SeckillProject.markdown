@@ -182,3 +182,72 @@ Vue官方推荐axios来发送ajax信息，举出几个跟jquery的ajax不一样�
 
 加上缓存之后，超卖问题好像解决了，但是吞吐量变得更慢是什么鬼emmm，明天在研究吧。
 
+## 第二次并发测试
+
+---
+
+——2020/4/29    第二次并发测试
+
+---
+
+昨天加上缓存并没有解决超卖问题，超卖问题实际上是因为下订单和减库存的顺序错了。虽然减库存的动作限制了库存数大于0才可以减，但这只保证了库存不会减到负数，并不能解决超卖问题。实际上解决的方法非常简单，**就是把他两个交换位置。先减库存，再下订单，这样不仅可以减少进入mysql的数据量，还能解决超卖问题。**
+
+我今天优化了代码之后，保证没有多余的数据去写进mysql后，测试吞吐量是下图
+
+![吞吐量低优化后纯走mysql](/img/seckill/吞吐量低优化后纯走mysql.jpg)
+
+157.9，比昨天10几好多了，毕竟没用的数据不要进mysql才是正确的思路。
+
+### 加缓存提速
+
+昨天加了缓存，是将商品信息序列化为json存入redis string中。每次查询redis的商品信息再判断中间的库存数。
+
+这个方法显然是不行的，商品库存作为一个超级热点数据，每秒都要修改几十次，那么存储成json的商品信息就要重新添加几十次，而且存储json相当于把其他属性再存一遍。
+
+所以我决定修改下存储的结构，本来准备改成hash的，但是想着修改的数据就库存一条，其他的都可以在redis里长期存储不会变化。所以我把库存单独拉出来存到redis的string里，key是商品id，value就是库存值。
+
+改完之后，由于库存是int，我想着SpringBoot Cache的序列化是可以处理的，没想到反序列化失败，redis里面取回来的String类型不能转换为int类型。
+
+![SpringBootcache不会反序列化int](E/img/seckill/SpringBootcache不会反序列化int.jpg)
+
+遂继续写自定义序列化方法的CacheManager，用jackson序列化Object即可
+
+![自定义object序列化](/img/seckill/自定义object序列化.jpg)
+
+### 自定义key前缀
+
+SpringBoot Cache在你使用缓存注解时，如果没有指定自己的key生成器，SpringBoot会使用自动注入的生成器，cacheName和key之间会有两个冒号，
+
+SpringBoot自动注入的简单生成器
+
+![](/img/seckill/SpringBoot自动注入的simpleKey生成器.jpg)
+
+simple实现
+
+![simpleKey生成器](/img/seckill/simpleKey生成器.jpg)
+
+所以只要自己写一个自定义的CacheKeyPrefix再通过RedisCacheConfiguration配置进去即可
+
+![](/img/seckill/自定义key生成器.jpg)
+
+只配一个冒号，之后在每个RedisCacheConfiguration配置中载入这个key生成器
+
+![自定义key生成器配置](/img/seckill/自定义key生成器配置.jpg)
+
+### redis多线程并发
+
+在添加上缓存之后再进行测试，发现会出现多线程并发问题。执行库存减一操作后发现日志吐出来的数据都是一样的。
+
+![问题2redis高并发线程不安全](/img/seckill/问题2redis高并发线程不安全.jpg)
+
+简单捋一下
+
+在下单操作开始时，会从redis中读出库存数，如果存在即减一，不存在就查数据库并把数据回写到redis中。
+
+redis库存减一后再把数据库的库存减一，如果减一失败，那么可能是数据库炸了，所以再将redis的库存加一。
+
+结果再进行测试时，最后执行完线程组后，redis里的库存竟然还有数。
+
+其实就是多线程的并发，在取出库存发现有数，但是在数据库减一之前就被其他的线程扣完了，所以数据库又失败了，这时候redis会再加一。造成最后执行结束还是个正数
+
+这个问题我已经想好怎么解决了，使用Redis的List搞个安全token即可，还可以减少redis和mysql的写量，明天继续~
