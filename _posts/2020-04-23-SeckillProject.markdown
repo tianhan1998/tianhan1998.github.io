@@ -292,3 +292,183 @@ redis库存减一后再把数据库的库存减一，如果减一失败，那么
 
 ![](/img/seckill/增加redisList后性能.jpg)
 
+---
+
+——2020/5/1    消息队列
+
+---
+
+## 第四次并发测试
+
+### 之前的bug
+
+在引进消息队列之前，优化了一下token的判断，原来是使用Set来判断token是否存在，但是这样token和使用他的用户并没有绑定到一块，如果有某个人下了单之后将token复制下来，之后取消订单，这样在token重新被别人取之前，他都能直接使用原来的token下单。
+
+所以我将Set判断token是否存在换成了String，key为uid和商品id，value值为uuid，这样在下单时都会检查对用户token是不是你取的那个token。这样防止了第三方用户使用了别人的token。
+
+最后在redis加上锁，每次执行下单操作时setnx一个值，expire10秒，10秒内同一个人不能重复下单。这样也能保证token最后能修改为已使用。
+
+```java
+redisTemplate.opsForValue().setIfAbsent("limit:userId:"+user.getId(),order.getGoodsId().toString(),10, TimeUnit.SECONDS);
+```
+
+### 新增消息队列
+
+引入消息队列，我的计划是对MySQL的操作都经过消息队列走数据库，不必等MySQL返回再响应结果。新建两个交换机，分别是秒杀商品操作交换机，和订单操作交换机。每个交换机分别有删除和插入队列。
+
+![消息队列交换机](/img/seckill/消息队列交换机.jpg)
+
+![订单操作队列](/img/seckill/订单操作队列.jpg)
+
+![秒杀商品队列](/img/seckill/秒杀商品队列.jpg)
+
+在下订单操作时，一旦redis对库存减成功后，就向mysql消息队列发送消息。来进行减库存以及下订单。
+
+下面是对应的订单和商品消费者
+
+![队列消费者](/img/seckill/队列消费者.jpg)
+
+![秒杀商品消费者](/img/seckill/秒杀商品消费者.jpg)
+
+在这个情况下压测，成绩从加消息队列前的500几乎翻了个倍
+
+10000个线程下订单，最大吞吐量1000 结束后平均700
+
+![消息队列非异步压测成绩](/img/seckill/消息队列非异步压测成绩.png)
+
+## 第五次并发测试
+
+---
+
+——2020/5/2    异步@Async
+
+---
+
+加上了消息队列后，1000左右的并发并不够，我寻思着应该再优化一下，在点击下单之后后端controller直接返回正在下单中...等后端redis和消息队列发送后返回一个结果，这样前端响应更加迅速。
+
+那么前端怎么收到结果呢？我一开是想着使用WebSocket长连接，这样等完成后将数据推回前端。可是我查了一下之后发现长连接时间太长容易出问题。有的大厂使用的是ajax轮询，一直向后端某个api发信息请求结果。但是秒杀本身连接就很多了，每个人再多重发信息后端可能扛不住连接。
+
+所以我最后用Redis的阻塞队列，将结果返回到Redis里一个List中，前端访问api，从队列中阻塞获取，等到队列中收到结果便会直接返回结果。只建立一次连接。
+
+首先，对下订单方法增加@Async异步操作，controller走到service层不必等待结果，直接返回正在下单中...
+
+```java
+ /**
+     * 创建订单
+     * @param order 订单，从请求体中取(axios post data)
+     * @param session 从session中取用户信息
+     * @return json
+     */
+    @PostMapping("/order")
+    public JSONObject createOrder(@RequestBody OrderInfo order,HttpSession session) {
+        JSONObject json = new JSONObject();
+        try {
+            User user = (User) session.getAttribute("login_user");
+            Boolean check=redisTemplate.opsForValue().setIfAbsent("limit:userId:"+user.getId(),order.getGoodsId().toString(),10, TimeUnit.SECONDS);
+            if(check!=null&&check) {
+                order.setUserId(user.getId());
+                ordersService.insertOrder(order, user);//对插入订单service增加异步注解
+                json.put("result", successResult("正在下单中...请稍后", order));
+            }else{
+                json.put("result",failResult("您点击太频繁了"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            json.put("result", exceptionResult(e.getMessage()));
+        }
+        return json;
+    }
+```
+
+insertOrder方法
+
+```java
+ @Override
+    @Async
+    public void insertOrder(OrderInfo order, User user) {
+        Long now = null;
+        String token= (String) stringRedisTemplate.opsForValue().get("checkToken:goodsId:"+order.getGoodsId()+":userId:"+user.getId());
+        if(token!=null) {
+            if(token.equals(order.getToken())) {
+                Boolean result = stringRedisTemplate.hasKey("stock:" + order.getGoodsId());
+                if (result != null) {
+                    now = stringRedisTemplate.opsForValue().decrement("stock:" + order.getGoodsId());
+                    log.info("redis商品id---->" + order.getGoodsId() + "库存-1成功，现在库存---->" + now);
+                }
+                if (now != null && now < 0) {
+                    log.error("库存为0或null，无法购买");
+                } else if (now == null) {
+                    log.error("查询库存出错");
+                }
+                resultRedisTemplate.opsForList().leftPush("result:goodsId:"+order.getGoodsId()+":userId:"+user.getId(), Result.successResult("下单成功!"));
+                secGoodProvider.decrementStock(order.getGoodsId());
+                orderProvider.sendOrder(order);
+                stringRedisTemplate.opsForValue().set("checkToken:goodsId:" + order.getGoodsId() + ":userId:" + order.getUserId(), "used");
+            }else{
+                resultRedisTemplate.opsForList().leftPush("result:goodsId:"+order.getGoodsId()+":userId:"+user.getId(), Result.failResult("token错误"));
+            }
+        }else{
+            resultRedisTemplate.opsForList().leftPush("result:goodsId:"+order.getGoodsId()+":userId:"+user.getId(), Result.failResult("未取得token,购买失败"));
+        }
+    }
+```
+
+配置一下异步的线程池
+
+```java
+package cn.th.seckill.config;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.util.concurrent.ThreadPoolExecutor;
+
+@Configuration
+@Slf4j
+public class ThreadPoolConfig {
+
+    @Bean
+    public TaskExecutor myTaskExecutor(){
+        log.info("start asyncServiceExecutor");
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        //配置核心线程数
+        executor.setCorePoolSize(30);
+        //配置最大线程数
+        executor.setMaxPoolSize(50);
+        //配置队列大小
+        executor.setQueueCapacity(99999);
+        //配置线程池中的线程的名称前缀
+        executor.setThreadNamePrefix("async-service-");
+        // 设置拒绝策略：当pool已经达到max size的时候，如何处理新任务
+        // CALLER_RUNS：不在新线程中执行任务，而是有调用者所在的线程来执行
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        //执行初始化
+        executor.initialize();
+        return executor;
+    }
+}
+
+```
+
+核心线程数：指线程创建到这个数之前进来的任务都会创建新线程
+
+队列大小：在核心线程满后，新来的任务会进入到队列中
+
+最大线程数：在核心线程数满后，任务会进入到队列中，当队列满后，会开始创建新线程，但总数小于最大线程数
+
+拒绝策略：当线程到了最大线程数时，且队列也满，便会走拒绝策略，拒绝后面的任务进队。
+
+在添加了redis和消息队列后，项目结构图如下
+
+![最终项目架构](/img/seckill/最终项目架构.jpg)
+
+压测20000个数据，结果如下
+
+![异步后最终压测成绩](/img/seckill/异步后最终压测成绩.png)
+
+平均1800 最高2100qps
+
+就先到这吧，如果再优化可以尝试做Servlet容器负载均衡，以及Redis高可用防止死机
