@@ -202,3 +202,40 @@ convmv -f GBK -t UTF-8 --notest -r /home/test #使用convmv命令转换编码为
 返回上一级本来想的是记录一下lastPath，点击..就会回到lastPath变量的路径，可是这仔细一想叫后退，不叫返回上一级，如果连着点击两个..目录，你会发现你后退之后又退回去了，等于没动，因为实际上是后退操作。所以返回上一级应该从当前path的字符串扣一层路径才行，不能记录之前的值。
 
 先这样吧，明天适配下Linux的文件系统，毕竟这个项目现在是在linux服务器上，而我做开发得先从本机windows系统来做，方便调试
+
+## 远程tomcat调试
+
+由于本机是Windows，所以对文件目录的操作只能以本机为准，可是服务器是Linux系统，两者的路径结构不同，写好了代码不好调试。上网一查发现可以远程tomcat调试。还是十分方便的
+
+进入到tomcat的目录（docker 通过docker exec -it 容器id /bash/bin进入）
+
+修改catalina.sh文件，添加以下字段
+
+```sh
+declare -x CATALINA_OPTS="-server -Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000"
+```
+
+最后的address改成你需要的端口，注意如果是阿里云需要添加相关安全组策略放开端口，非华为云需要打开防火墙对应端口。
+
+如果你是Docker发现容器内无vim或vi命令，需要执行以下操作来添加vim
+
+```bash
+apt-get update
+apt-get install vim
+```
+
+操作完成后即可使用vim操作文件。
+
+放开tomcat调试端口后，在Intellij IDEA中添加远程debug模块
+
+![远程debug idea选项](/img/onlineDisk/远程debug idea选项.jpg)
+
+选择Remote
+
+![idea remote](/img/onlineDisk/idea remote.jpg)
+
+配置对应服务器tomcatIP和端口
+
+![remote 配置](/img/onlineDisk/remote 配置.jpg)
+
+添加完成后即可开始调试，记得打上断点~
