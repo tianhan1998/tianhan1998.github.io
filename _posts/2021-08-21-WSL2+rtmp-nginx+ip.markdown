@@ -2,7 +2,7 @@
 
 
 layout:     post
-title:      "在公网环境WLS2中使用Docker搭建RTMP服务器运行自己的直播平台"
+title:      "在公网环境WSL2中使用Docker搭建RTMP服务器运行自己的直播平台"
 subtitle:   "HLS"
 date:       2021-08-21
 author:     "Sakura"
@@ -318,7 +318,7 @@ sudo netsh interface portproxy reset
 
 解决方法是通过脚本，在WSL写一个脚本，每次启动将自己的IP通过挂载盘写入到宿主机的hosts中，在hosts中固定一个域名，做一个类似DDNS的功能，windows端口转发固定转发到域名就好。
 
-GitHub上好像有一个go-wls2开源项目，我用着无效。。还是自己写吧
+GitHub上好像有一个go-wsl2开源项目，我用着无效。。还是自己写吧
 
 ```shell
 vim /etc/init.wsl
