@@ -2,7 +2,7 @@
 
 
 layout:     post
-title:      "在公网环境WLS2的Docker中搭建RTMP服务器运行自己的直播平台"
+title:      "在公网环境WLS2中使用Docker搭建RTMP服务器运行自己的直播平台"
 subtitle:   "HLS"
 date:       2021-08-21
 author:     "Sakura"
@@ -46,15 +46,15 @@ typora-root-url: ..
 
 #### 1.BIOS打开虚拟化
 
-打开后在任务管理器中的性能选项卡中可以看到开启![虚拟化](\img\wsl2\虚拟化.png)
+打开后在任务管理器中的性能选项卡中可以看到开启![虚拟化](/img\wsl2\虚拟化.png)
 
 #### 2.微软商店安装Ubuntu
 
-![虚拟化](\img\wsl2\3.png)
+![虚拟化](/img\wsl2\3.png)
 
 安装完后运行可能遇到以下问题
 
-![](../img/wsl2/4png.png)
+![](/img/wsl2/4png.png)
 
 或者在WSL1升级WSL2过程中可能遇到
 
@@ -70,7 +70,7 @@ C:\Users\${username}\AppData\Local\Packages\CanonicalGroupLimited.xxxxxxx
 
 找到文件夹下的LocalState文件夹，属性，高级
 
-<img src="../img/wsl2/image-20210822144049170.png" alt="image-20210822144049170" style="zoom:80%;" />
+<img src="/img/wsl2/image-20210822144049170.png" alt="image-20210822144049170" style="zoom:80%;" />
 
 找到**压缩内容以便节省磁盘空间**去掉这个勾即可解决
 
@@ -146,7 +146,7 @@ sudo docker run -d -p 1935:1935 -p 5000:80 --name rtmp --restart=always alfg/ngi
 
 访问宿主机5000端口检查Nginx运行情况（宿主机与WSL2公用一个localhost）
 
-![image-20210822152402219](../img/wsl2/image-20210822152402219.png)
+![image-20210822152402219](/img/wsl2/image-20210822152402219.png)
 
 可以访问
 
@@ -212,13 +212,13 @@ rtmp://localhost:1935/stream
 
 串流秘钥为空
 
-![image-20210822152053008](../img/wsl2/image-20210822152053008.png)
+![image-20210822152053008](/img/wsl2/image-20210822152053008.png)
 
-开始推流，无问题![image-20210822152122452](../img/wsl2/image-20210822152122452.png)
+开始推流，无问题![image-20210822152122452](/img/wsl2/image-20210822152122452.png)
 
 运行你自己的直播间项目
 
-![image-20210822153342635](../img/wsl2/image-20210822153342635.png)
+![image-20210822153342635](/img/wsl2/image-20210822153342635.png)
 
 内网宿主机访问成功
 
@@ -234,13 +234,13 @@ rtmp://localhost:1935/stream
 
 首先在路由器中设置DMZ主机，
 
-![image-20210822153952517](../img/wsl2/image-20210822153952517.png)
+![image-20210822153952517](/img/wsl2/image-20210822153952517.png)
 
 设置后，我们就可以通过域名或自己的公网IP来访问到宿主机。但是现在还访问不到WSL。
 
 虽然宿主机与WSL之间公用一个localhost，可是这仅限在本机中可以访问，在公网中向宿主机端口发送请求是访问不到WSL的。
 
-![image-20210822155350261](../img/wsl2/image-20210822155350261.png)
+![image-20210822155350261](/img/wsl2/image-20210822155350261.png)
 
 192.168.0.253为局域网中宿主机IP，可以看到只有宿主机自己才可以直接访问虚拟机
 
@@ -250,13 +250,13 @@ WSL2实际上是在Hyper-V上运行的一个虚拟机，与宿主机是在不同
 
 在WSL中输入ifconfig
 
-![image-20210822160156823](../img/wsl2/image-20210822160156823.png)
+![image-20210822160156823](/img/wsl2/image-20210822160156823.png)
 
 eth0为虚拟机IP，可以发现，与宿主机的192.168.0.253不在同一网段
 
 宿主机直接访问该IP下的Docker容器，可以接通
 
-![image-20210822160313655](../img/wsl2/image-20210822160313655.png)
+![image-20210822160313655](/img/wsl2/image-20210822160313655.png)
 
 所以我们现在要做的是将访问宿主机（192.168.0.253）的请求转发到虚拟机（172.25.157.124）上
 
@@ -286,7 +286,7 @@ netsh interface portproxy add v4tov4 listenport=5001 connectaddress=172.25.157.1
 netsh interface portproxy show all
 ```
 
-![image-20210822161658169](../img/wsl2/image-20210822161658169.png)
+![image-20210822161658169](/img/wsl2/image-20210822161658169.png)
 
 通过下面的命令来清空端口转发
 
@@ -296,13 +296,13 @@ sudo netsh interface portproxy reset
 
 在设置过端口转发后我们测试联通情况
 
-![image-20210822161947668](../img/wsl2/image-20210822161947668.png)
+![image-20210822161947668](/img/wsl2/image-20210822161947668.png)
 
 可以通过局域网宿主机IP来访问虚拟机的Docker容器了（内网访问成功）
 
 注意是5001端口，这是宿主机监听的端口
 
-![image-20210822162117360](../img/wsl2/image-20210822162117360.png)
+![image-20210822162117360](/img/wsl2/image-20210822162117360.png)
 
 公网IP和域名访问成功（外网访问成功）
 
