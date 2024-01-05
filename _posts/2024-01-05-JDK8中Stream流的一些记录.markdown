@@ -1,0 +1,178 @@
+---
+
+
+layout:     post
+title:      "JDK8中Stream流的一些记录"
+subtitle:   "写起来很爽，读起来很气"
+date:       2024-01-05
+author:     "Sakura"
+tags:
+    - 项目
+    - SpringBoot
+    - 代码
+    - 心得
+typora-root-url: ..
+---
+# 0.前言
+
+JDK8里的Stream写起来挺顺手的，就是遇到复杂情况的时候有点不好读，这次做项目的时候遇到了几个用到groupingBy的情况，平时也就用用filter()和map()，这次使用groupingBy()调用的api就稍复杂了些。
+
+# 1.正文
+
+## collectingAndThen()
+
+先从简单的来吧，现在有一个WechatFriendsTagEntity类，类的属性在下面
+
+```java
+public class WechatFriendsTagEntity implements Serializable {
+	//以上省略
+		/**
+     * 关系
+     */
+    private String tag;
+
+    /**
+     * 设备拥有者姓名
+     */
+    private String ownerName;
+  //以下省略
+
+}
+```
+
+我们现在需要将一个元素为WechatFriendsTagEntity的数组做分类，并统计出每个tag的数量。
+
+如果不用stream的话，应该用这种方法做
+
+```java
+				HashMap<String,Integer> hashMap=new LinkedHashMap<>();
+				//遍历Entity数组，并用Map计数
+        for (WechatFriendsTagEntity wechatFriendsTagEntity : list) {
+            Integer number = hashMap.get(wechatFriendsTagEntity.getTag());
+            if(number==null){
+                number=0;
+            }
+            hashMap.put(wechatFriendsTagEntity.getTag(), ++number);
+        }
+```
+
+实际上，在java8的stream操作中，有groupingBy()方法，可以实现快速分类
+
+```java
+        list.stream().collect(Collectors.groupingBy(WechatFriendsTagEntity::getTag));
+```
+
+java8的Collectors工具类中含有大量对流元素处理的方法，toList(),toSet(),groupingBy()等等
+
+上面的方法，很好读，意思就是将这个数组根据Tag做分类，那么他的返回值应该是下面这样的
+
+```java
+        Map<String, List<WechatFriendsTagEntity>> collect = list.stream()
+          .collect(Collectors.groupingBy(WechatFriendsTagEntity::getTag));
+```
+
+这个Map的key就是我们的Tag，value就是跟这个tag相同的WechatFriendsTagEntity数组，可以看到已经分组好了，但是我们要的实际上是数量，也就是说我们想要的是这个List的size()，而不是对象本身。没关系，stream的api可以做到
+
+```java
+public static <T, K, A, D>
+    Collector<T, ?, Map<K, D>> groupingBy(Function<? super T, ? extends K> classifier,
+                                          Collector<? super T, A, D> downstream) {
+        return groupingBy(classifier, HashMap::new, downstream);
+    }
+```
+
+在这里，我们使用Collectors.groupingBy()的双参数重载版本，第二个参数你可以理解为分组之后要做的事，也就是说我们甚至可以groupingBy嵌套，就可以实现多重分组
+
+```java
+Map<String, Integer> collect = list.stream()
+                .collect(Collectors.groupingBy(WechatFriendsTagEntity::getTag, 
+                        Collectors.groupingBy(...)));
+```
+
+所以，根据我们的需求，我们要在他第一次分类好之后，将分类好的结果进行汇总并计算size
+
+```java
+        Map<String, Integer> collect = list.stream()
+                .collect(Collectors.groupingBy(WechatFriendsTagEntity::getTag, 
+                        Collectors.collectingAndThen(Collectors.toList(), List::size)));
+```
+
+可以看到我们在groupingBy的第二个参数使用了Collectors的另一个工具方法collectingAndThen()，这个方法从名字就可以看出，“先收集然后再去做xx”。我们将grouping出来的结果先用toList()的方式进行收集，随后计算出这个List的size，最后这个size就是groupingBy之后的新结果了
+
+## mapping()
+
+现在我们已经知道了groupingBy()可以分类了，于是又碰到了下面这个分类情况
+
+```java
+public class UserInfoEntity implements Serializable {    
+/**
+     * 来源设备
+     */
+    private String sourceDevices;
+
+    /**
+     * 所有者姓名
+     */
+    private String ownerName;
+}
+```
+
+ownerName代表一个人的名字，而sourceDevices代表他持有的设备。我们知道一个人可以拥有多个设备，所以ownerName和sourceDevices是一对多的关系。
+
+下面我们想查找出一个人持有的所有设备List，使用Map存储。想要返回的类型应该如下所示
+
+```java
+ Map<String, List<String>>
+```
+
+key是ownerName，而value是他拥有的sourceDevices集合
+
+如何用groupingBy()做这个呢？
+
+```java
+//先使用groupingBy根据ownerName分类
+Map<String, List<UserInfoEntity>> collect = list.stream()
+                    .collect(Collectors.groupingBy(UserInfoEntity::getOwnerName));
+```
+
+我们先调用一个groupingBy，这个时候，他应该按照了我们想要的根据ownerName分类，但是返回的结果是List<UserInfoEntity>数组，而我们想要的是这个数组元素里的sourceDevices属性。
+
+仔细想想，我们需要的是不是需要再用一个map()去做提取？
+
+如果我们有个UserInfoEntity数组，想要将每个entity里的sourceDevices属性提取出来做一个List，那么应该使用map()
+
+```java
+List<UserInfoEntity> list;
+List<String> deviceIdList = list.stream().map(UserInfoEntity::getSourceDevices).collect(Collectors.toList());
+```
+
+所以我们使用上面学到的，用groupingBy的第二个参数，将分类结果再次交给一个map方法去做就可以了
+
+```java
+Map<String, List<String>> collect = list.stream()
+                    .collect(Collectors.groupingBy(UserInfoEntity::getOwnerName,
+                            Collectors.mapping(UserInfoEntity::getSourceDevices, Collectors.toList())));
+```
+
+groupingBy()的第二个参数使用了Collectors.mapping()方法，你可以理解为，调用了mapping()方法后，先执行了一个map()【mapping的第一个参数】，然后再执行一个collect()【mapping的第二个参数】
+
+代码中就是groupingBy之后，先做了一个map，将sourceDevices提取出来，随后将所有提取出来的sourceDevices做一个collect(Collectors.toList())，返回的结果就是sourceDevices的List集合，也就是我们想要的结果。
+
+学会了这个mapping()来看一下下面的这段代码你是否能看懂
+
+```java
+
+public class TagRecords {
+
+    private WechatFriendTagEnum tag;
+    private List<PersonalChatContent> records;
+
+}
+
+...
+Map<WechatFriendTagEnum, List<List<PersonalChatContent>>> group = results.stream().filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(TagRecords::getTag,
+                            Collectors.mapping(TagRecords::getRecords,Collectors.toList())));
+```
+
+其实学会了挺简单的，先用filter过滤掉null的对象，然后根据tag做一个groupBy，将groupBy之后的结果应该是TagRecords的一个集合，再去用Collectors.mapping去提取内部的records，最后使用Collectors.toList()将所有的records全部收集起来，所以返回结果是List<List<PersonalChatContent>>
